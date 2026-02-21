@@ -1,2 +1,121 @@
 # electrodacus-parser
-Parses USB data from electrodacus to be used with victron
+Parses Electrodacus SBMS0 USB capture data.
+
+This repository is intentionally starting with a small, format-agnostic foundation:
+it can load a capture file that is either raw binary bytes or an ASCII file
+containing `0`/`1` bits (with optional whitespace), normalize it into a byte
+stream, and print a hex dump.
+
+As you provide the exact SBMS0 USB framing (packet boundaries, checksums, field
+layout, endianness), we can layer a real SBMS0 message decoder on top.
+
+## Project layout
+- **`src/electrodacus_parser/`**: library code
+- **`tests/`**: pytest tests
+- **`data/`**: sample capture files
+
+## Requirements
+- Python 3.10+
+
+## Install (editable)
+```bash
+python -m pip install -e .
+```
+
+If you don't want to install it yet, you can run the CLI directly via Python:
+```bash
+python -m electrodacus_parser.cli hexdump data/sample_raw_bits.txt
+python -m electrodacus_parser.cli convert data/sample_raw_bits.txt
+```
+
+For development deps:
+```bash
+python -m pip install -e .[dev]
+```
+
+## CLI usage
+Print a hex dump from a capture file (default command):
+```bash
+electrodacus-parser data/sample_raw_bits.txt
+```
+
+Equivalent explicit form:
+```bash
+electrodacus-parser hexdump data/sample_raw_bits.txt
+```
+
+If your ASCII bit files should be packed LSB-first:
+```bash
+electrodacus-parser --lsb-first data/sample_raw_bits.txt
+```
+
+Metadata as JSON (and hexdump unless `--no-hexdump` is set):
+```bash
+electrodacus-parser hexdump --json data/sample_raw_bits.txt
+```
+
+Parse a captured UART log file and print parsed records to stdout:
+```bash
+electrodacus-parser convert data/sample_raw_bits.txt
+```
+
+To print the full payload (no truncation):
+```bash
+electrodacus-parser convert --full data/sample_raw_bits.txt
+```
+
+## Running tests
+```bash
+pytest
+```
+
+## Docker
+
+Build the image:
+```bash
+docker build -t electrodacus-parser .
+```
+
+Run against a local capture file by mounting the repo into the container:
+```bash
+docker run --rm -v "${PWD}:/work" -w /work electrodacus-parser convert data/sample_raw_bits.txt
+```
+
+Hexdump:
+```bash
+docker run --rm -v "${PWD}:/work" -w /work electrodacus-parser hexdump data/sample_raw_bits.txt
+```
+
+## Capturing SBMS0 data (UART over USB serial)
+
+SBMS0 can output periodic status lines over UART. When connected via USB (micro USB
+to USB-A), many systems will enumerate it as a CH340/CH341 USB-serial adapter.
+
+On Linux, a typical workflow is:
+```bash
+lsusb
+dmesg | grep tty
+stty -F /dev/ttyUSB0 115200 cs8 -cstopb -parenb
+cat -v /dev/ttyUSB0
+```
+
+To save to a file:
+```bash
+cat -v /dev/ttyUSB0 > yourfile.txt
+```
+
+You should see “gibberish-looking” ASCII lines similar to:
+```text
+#$$#%T#TG|H.H<H&H.H.H'H+*?##-##*#####################$@5%N(
+```
+
+## Capture file formats supported (initial)
+- **Hex text**: whitespace-separated bytes like `4f 6b 41 79 ...` (optional `0x` prefix).
+- **ASCII bits**: a text file containing `0` and `1` characters; any whitespace
+  is ignored.
+- **Binary / raw bytes**: any other file is treated as already being a byte stream (including
+  “gibberish-looking” ASCII captures).
+
+
+## Logic converted from C
+- **[convert2.c](https://groups.google.com/g/electrodacus/c/xks0XWsay90?pli=1)**
