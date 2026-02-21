@@ -37,7 +37,7 @@ pip install -e .[dev]
 ```bash
 electrodacus-parser convert data/sample_raw_bits.txt
 ```
-testing ai groq
+testing ai groq wow this is not
 
 Output shows battery metrics:
 ```
