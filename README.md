@@ -9,7 +9,7 @@ Parses Electrodacus SBMS0 USB/UART capture data and decodes battery metrics.
 - Docker support for easy portability
 
 ## Project Layout
-
+review this
 - **`src/electrodacus_parser/`** - Library code
 - **`tests/`** - pytest tests
 - **`data/`** - Sample capture files
