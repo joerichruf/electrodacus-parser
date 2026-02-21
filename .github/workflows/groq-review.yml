@@ -3,8 +3,6 @@ name: Groq Code Review
 on:
   pull_request:
     types: [opened, reopened, ready_for_review]
-  push:
-    branches-ignore: [main, master]
   workflow_dispatch:
 
 jobs:
@@ -50,7 +48,7 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DIFF: ${{ steps.get_diff.outputs.pull_request_diff }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
         run: |
           python <<EOF
           import os
@@ -85,7 +83,10 @@ jobs:
 
           review = response.choices[0].message.content
 
-          pr_number = os.environ["PR_NUMBER"]
+          pr_number = os.environ.get("PR_NUMBER", "")
+          if not pr_number:
+              print("No PR number found. This action only works on pull requests.")
+              exit(0)
 
           repo = os.environ["GITHUB_REPOSITORY"]
 
