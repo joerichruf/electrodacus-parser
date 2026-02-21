@@ -3,8 +3,9 @@ name: Groq Code Review
 on:
   pull_request:
     types: [opened, reopened, ready_for_review]
-    paths-ignore:
-      - "LICENSE"
+  push:
+    branches-ignore: [main, master]
+  workflow_dispatch:
 
 jobs:
   review:
@@ -20,6 +21,10 @@ jobs:
           echo "Ref: ${{ github.ref }}"
 
       - uses: actions/checkout@v4
+
+      - name: Install Groq Python library
+        run: |
+          pip install groq
 
       - name: Get diff of the pull request
         id: get_diff
@@ -41,18 +46,18 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Groq Code Review
-        uses: rajsinghparihar/llm-code-review@0.0.1
+        uses: rajsinghparihar/llm-code-review@v1.0.2
         with:
           apiKey: ${{ secrets.GROQ_API_KEY }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           githubRepository: ${{ github.repository }}
-          githubPullRequestNumber: ${{ github.event.pull_request.number }}
-          gitCommitHash: ${{ github.event.pull_request.head.sha }}
+          githubPullRequestNumber: ${{ github.event.pull_request.number || 0 }}
+          gitCommitHash: ${{ github.event.pull_request.head.sha || github.sha }}
           repoId: "llama3-70b-8192"
           temperature: "0.2"
           maxNewTokens: "256"
           topK: "40"
           topP: "0.95"
-          pullRequestDiff: ${{ steps.get_diff.outputs.pull_request_diff }}
+          pullRequestDiff: ${{ steps.get_diff.outputs.pull_request_diff || '' }}
           pullRequestChunkSize: "4000"
           logLevel: "DEBUG"
