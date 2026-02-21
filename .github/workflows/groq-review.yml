@@ -50,6 +50,7 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DIFF: ${{ steps.get_diff.outputs.pull_request_diff }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           python <<EOF
           import os
@@ -104,5 +105,3 @@ jobs:
 
           print("Review posted successfully.")
           EOF
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
