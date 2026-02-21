@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
-import re
 
 
 @dataclass(frozen=True)
@@ -95,7 +95,7 @@ def bits_to_bytes(bits: Iterable[int], *, msb_first: bool = True) -> bytes:
 
     if n != 0:
         if msb_first:
-            acc <<= (8 - n)
+            acc <<= 8 - n
         out.append(acc & 0xFF)
 
     return bytes(out)

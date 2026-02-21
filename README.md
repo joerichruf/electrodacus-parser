@@ -13,6 +13,7 @@ layout, endianness), we can layer a real SBMS0 message decoder on top.
 - **`src/electrodacus_parser/`**: library code
 - **`tests/`**: pytest tests
 - **`data/`**: sample capture files
+- **`docker/`**: Docker configuration, docker-compose, and run script
 
 ## Requirements
 - Python 3.10+
@@ -69,21 +70,51 @@ electrodacus-parser convert --full data/sample_raw_bits.txt
 pytest
 ```
 
+## Code formatting (pre-commit)
+
+This project uses pre-commit to enforce code style. Install and run:
+
+```bash
+# Install pre-commit hooks
+pre-commit install
+
+# Run on all files
+pre-commit run --all-files
+```
+
+Hooks include:
+- **black** - Python code formatting
+- **ruff** - Python linting and import sorting
+- **hadolint** - Dockerfile linting
+- **yamlfmt** - YAML formatting (docker-compose.yml)
+- Standard hooks (trailing whitespace, end-of-file fixer, etc.)
+
 ## Docker
 
-Build the image:
+All Docker files are in the `docker/` folder.
+
+### Quick run using the provided script:
+
 ```bash
-docker build -t electrodacus-parser .
+cd docker
+./run.sh convert
+./run.sh hexdump
 ```
 
-Run against a local capture file by mounting the repo into the container:
+### Using docker-compose directly:
+
 ```bash
-docker run --rm -v "${PWD}:/work" -w /work electrodacus-parser convert data/sample_raw_bits.txt
+cd docker
+docker-compose run --rm parser convert /data/sample_raw_bits.txt
+docker-compose run --rm parser hexdump /data/sample_raw_bits.txt
 ```
 
-Hexdump:
+### Manual Docker build and run:
+
 ```bash
-docker run --rm -v "${PWD}:/work" -w /work electrodacus-parser hexdump data/sample_raw_bits.txt
+cd docker
+docker build -t electrodacus-parser ..
+docker run --rm -v "../data:/data:ro" electrodacus-parser convert /data/sample_raw_bits.txt
 ```
 
 ## Capturing SBMS0 data (UART over USB serial)

@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
-from dataclasses import asdict
 import sys
+from dataclasses import asdict
+from pathlib import Path
 
 from .parser import (
-    iter_sbms0_decoded_records,
     hex_dump,
+    iter_sbms0_decoded_records,
     iter_sbms0_uart_records,
     load_capture,
     normalize_to_bytes,
@@ -97,14 +97,14 @@ def main() -> int:
             # Fallback to showing the raw record structure.
             idx_w = max(3, len(str(len(raw_records))))
             line_w = max(4, len(str(max((r.line_no for r in raw_records), default=0))))
-            print(
-                f"{'idx':>{idx_w}}  {'line':>{line_w}}  seq  {'tail':<8}  payload"
-            )
+            print(f"{'idx':>{idx_w}}  {'line':>{line_w}}  seq  {'tail':<8}  payload")
             print("-" * 80)
             for i, r in enumerate(raw_records, start=1):
                 tail = r.tail_marker or ""
                 payload = r.payload if args.full else trunc(r.payload, 72)
-                print(f"{i:>{idx_w}}  {r.line_no:>{line_w}}  {(r.seq or ''):>3}  {tail:<8}  {payload}")
+                print(
+                    f"{i:>{idx_w}}  {r.line_no:>{line_w}}  {(r.seq or ''):>3}  {tail:<8}  {payload}"
+                )
         return 0
 
     if cmd == "hexdump":

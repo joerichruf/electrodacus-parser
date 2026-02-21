@@ -11,6 +11,9 @@ Requires-Python: >=3.10
 Description-Content-Type: text/markdown
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: pre-commit>=3.5.0; extra == "dev"
+Requires-Dist: black>=24.0.0; extra == "dev"
+Requires-Dist: ruff>=0.3.0; extra == "dev"
 
 # electrodacus-parser
 Parses Electrodacus SBMS0 USB capture data.
@@ -27,6 +30,7 @@ layout, endianness), we can layer a real SBMS0 message decoder on top.
 - **`src/electrodacus_parser/`**: library code
 - **`tests/`**: pytest tests
 - **`data/`**: sample capture files
+- **`docker/`**: Docker configuration, docker-compose, and run script
 
 ## Requirements
 - Python 3.10+
@@ -73,9 +77,61 @@ Parse a captured UART log file and print parsed records to stdout:
 electrodacus-parser convert data/sample_raw_bits.txt
 ```
 
+To print the full payload (no truncation):
+```bash
+electrodacus-parser convert --full data/sample_raw_bits.txt
+```
+
 ## Running tests
 ```bash
 pytest
+```
+
+## Code formatting (pre-commit)
+
+This project uses pre-commit to enforce code style. Install and run:
+
+```bash
+# Install pre-commit hooks
+pre-commit install
+
+# Run on all files
+pre-commit run --all-files
+```
+
+Hooks include:
+- **black** - Python code formatting
+- **ruff** - Python linting and import sorting
+- **hadolint** - Dockerfile linting
+- **yamlfmt** - YAML formatting (docker-compose.yml)
+- Standard hooks (trailing whitespace, end-of-file fixer, etc.)
+
+## Docker
+
+All Docker files are in the `docker/` folder.
+
+### Quick run using the provided script:
+
+```bash
+cd docker
+./run.sh convert
+./run.sh hexdump
+```
+
+### Using docker-compose directly:
+
+```bash
+cd docker
+docker-compose run --rm parser convert /data/sample_raw_bits.txt
+docker-compose run --rm parser hexdump /data/sample_raw_bits.txt
+```
+
+### Manual Docker build and run:
+
+```bash
+cd docker
+docker build -t electrodacus-parser ..
+docker run --rm -v "../data:/data:ro" electrodacus-parser convert /data/sample_raw_bits.txt
 ```
 
 ## Capturing SBMS0 data (UART over USB serial)
@@ -107,3 +163,7 @@ You should see “gibberish-looking” ASCII lines similar to:
   is ignored.
 - **Binary / raw bytes**: any other file is treated as already being a byte stream (including
   “gibberish-looking” ASCII captures).
+
+
+## Logic converted from C
+- **[convert2.c](https://groups.google.com/g/electrodacus/c/xks0XWsay90?pli=1)**
