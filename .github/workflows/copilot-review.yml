@@ -11,8 +11,17 @@ jobs:
       pull-requests: write
       contents: read
     steps:
-      - name: Copilot Review
-        uses: github/copilot-review-action@v1
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Request Copilot Review
+        uses: actions/github-script@v7
         with:
-          # Optional: Configure review focus
-          focus: security,performance,bugs
+          script: |
+            const { owner, repo, number } = context.issue;
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: number,
+              body: '@github-copilot review this PR'
+            });
