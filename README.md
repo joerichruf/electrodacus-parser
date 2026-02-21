@@ -37,6 +37,7 @@ pip install -e .[dev]
 ```bash
 electrodacus-parser convert data/sample_raw_bits.txt
 ```
+testing ai
 
 Output shows battery metrics:
 ```
