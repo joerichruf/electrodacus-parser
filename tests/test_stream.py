@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+
 from electrodacus_parser import (
     Publisher,
     decode_line,
