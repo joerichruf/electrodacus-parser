@@ -9,6 +9,16 @@ from .parser import (
     hex_dump,
     looks_like_sbms0_line,
 )
+from .stream import (
+    MqttPublisher,
+    Publisher,
+    StdoutJsonlPublisher,
+    open_serial,
+    read_lines,
+    record_to_jsonable,
+    run_stream,
+    stream_lines_from_path,
+)
 
 try:
     __version__ = version("electrodacus-parser")
@@ -18,10 +28,18 @@ except PackageNotFoundError:
 __all__ = [
     "SBMS0_LINE_LEN",
     "DecodeStats",
+    "MqttPublisher",
+    "Publisher",
     "Sbms0Record",
+    "StdoutJsonlPublisher",
     "__version__",
     "decode_line",
     "decode_records",
     "hex_dump",
     "looks_like_sbms0_line",
+    "open_serial",
+    "read_lines",
+    "record_to_jsonable",
+    "run_stream",
+    "stream_lines_from_path",
 ]

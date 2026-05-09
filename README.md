@@ -43,6 +43,78 @@ is always written to stderr:
 5 record(s) shown, 0 malformed, 1 CRC failure(s), 0 blank line(s) (of 6 total).
 ```
 
+### Stream live data (daemon)
+
+For continuous monitoring (boat, RV, off-grid system), run the parser as a
+long-lived daemon that reads the SBMS0 directly off USB and emits decoded
+records as JSON, one per line, to stdout — and optionally to MQTT.
+
+```bash
+# Read from /dev/ttyUSB0 forever; emit JSONL on stdout. Reopens the port
+# automatically if the USB cable is unplugged.
+electrodacus-parser stream /dev/ttyUSB0
+
+# Same, but also publish each record to a local MQTT broker (e.g. the
+# Mosquitto built into Victron Venus OS):
+electrodacus-parser stream /dev/ttyUSB0 \
+    --mqtt-broker localhost --mqtt-topic electrodacus/sbms0
+
+# Read from stdin instead of opening the device directly. Useful for
+# testing, replaying captured logs, or if another tool already owns the
+# serial port:
+cat capture.txt | electrodacus-parser stream -
+```
+
+Each record is a single JSON object on its own line:
+
+```json
+{"received_at":"2026-05-09T12:34:56Z","line_no":1,"device_timestamp":"00-01-01T00:02:49","soc_pct":49,"cells_mv":[3365,3378,3392,3370,3378,3378,3371,3375],"internal_temp_c":21.5,"external_temp_c":-45.0,"battery_ma":-7,"pv1_ma":0,"pv2_ma":0,"ext_ma":0,"stat":20480,"pv_level":1,"pvdiv":0,"adc2":0,"adc3":0,"dmppt":0,"crc_ok":true,"crc_residual":0}
+```
+
+Stream flags:
+
+| Flag | Default | Notes |
+|------|---------|-------|
+| `--baud N` | `115200` | Baud rate when input is a serial device. |
+| `--include-errors` | off | Publish CRC-failed records too (with `crc_ok:false`). |
+| `--no-stdout` | off | Suppress JSONL output; only useful with `--mqtt-broker`. |
+| `--once` | off | Read until EOF and exit (default reopens the serial port forever). |
+| `--reconnect-delay SECS` | `2.0` | Cooldown between reconnect attempts. |
+| `--mqtt-broker HOST` | — | Enables MQTT publishing. |
+| `--mqtt-port N` | `1883` | |
+| `--mqtt-topic T` | `electrodacus/sbms0` | |
+| `--mqtt-qos {0,1,2}` | `0` | |
+| `--mqtt-username U` | — | Password is read from `$MQTT_PASSWORD` (or `--mqtt-password-env VAR`). |
+
+MQTT support requires the optional dependency: `pip install
+'electrodacus-parser[mqtt]'`.
+
+### Running on Victron Venus OS with Node-RED
+
+Venus OS ships with a Mosquitto broker on `localhost:1883` and Node-RED.
+The cleanest pattern is:
+
+1. Install the package on the GX device (or run it from Docker against
+   the device's `/dev/ttyUSB0`).
+2. Run the parser as a service that publishes to MQTT:
+
+   ```bash
+   electrodacus-parser stream /dev/ttyUSB0 \
+       --mqtt-broker localhost \
+       --mqtt-topic electrodacus/sbms0 \
+       --no-stdout
+   ```
+
+3. In Node-RED, drop an `mqtt in` node subscribed to
+   `electrodacus/sbms0` (broker `localhost:1883`, output type *parsed
+   JSON object*). The `msg.payload` you receive on each tick is the full
+   record dict — feed it into a dashboard, gauge, or whatever
+   visualization you want on the touchscreen.
+
+If you'd rather skip MQTT, drop a `daemon` node (from
+`node-red-contrib-daemon`) running `electrodacus-parser stream
+/dev/ttyUSB0` and parse `msg.payload` as JSON line-by-line.
+
 ### Hex dump
 
 ```bash
