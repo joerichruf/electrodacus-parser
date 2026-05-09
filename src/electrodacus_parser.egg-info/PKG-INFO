@@ -2,168 +2,186 @@ Metadata-Version: 2.4
 Name: electrodacus-parser
 Version: 0.1.0
 Summary: Parse Electrodacus SBMS0 USB raw bit/byte data
-License: MIT
+License: MIT License
+        
+        Copyright (c) 2026 joerichruf
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
 Keywords: electrodacus,sbms0,usb,parser
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
+License-File: LICENSE
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0.0; extra == "dev"
 Requires-Dist: pre-commit>=3.5.0; extra == "dev"
 Requires-Dist: black>=24.0.0; extra == "dev"
 Requires-Dist: ruff>=0.3.0; extra == "dev"
+Dynamic: license-file
 
 # electrodacus-parser
-Parses Electrodacus SBMS0 USB capture data.
 
-This repository is intentionally starting with a small, format-agnostic foundation:
-it can load a capture file that is either raw binary bytes or an ASCII file
-containing `0`/`1` bits (with optional whitespace), normalize it into a byte
-stream, and print a hex dump.
+Parses Electrodacus SBMS0 USB/UART capture data and decodes battery metrics
+(SOC, per-cell voltages, temperatures, currents, status, CRC).
 
-As you provide the exact SBMS0 USB framing (packet boundaries, checksums, field
-layout, endianness), we can layer a real SBMS0 message decoder on top.
+The decoder validates each frame's structure and CRC. By default the CLI
+drops frames whose CRC does not match — values from a corrupted frame
+cannot be trusted.
 
-## Project layout
-- **`src/electrodacus_parser/`**: library code
-- **`tests/`**: pytest tests
-- **`data/`**: sample capture files
-- **`docker/`**: Docker configuration, docker-compose, and run script
+## Project Layout
+
+- **`src/electrodacus_parser/`** — Library code
+- **`tests/`** — pytest tests (regression-pinned against `data/sample_raw_bits.txt`)
+- **`data/`** — Sample capture files
+- **`docker/`** — Docker configuration and run script
 
 ## Requirements
+
 - Python 3.10+
+- Docker (optional)
 
-## Install (editable)
+## Installation
+
 ```bash
-python -m pip install -e .
+pip install -e .
+pip install -e ".[dev]"   # with development dependencies
 ```
 
-If you don't want to install it yet, you can run the CLI directly via Python:
-```bash
-python -m electrodacus_parser.cli hexdump data/sample_raw_bits.txt
-python -m electrodacus_parser.cli convert data/sample_raw_bits.txt
-```
+## Usage
 
-For development deps:
-```bash
-python -m pip install -e .[dev]
-```
+### Decode SBMS0 UART log
 
-## CLI usage
-Print a hex dump from a capture file (default command):
-```bash
-electrodacus-parser data/sample_raw_bits.txt
-```
-
-Equivalent explicit form:
-```bash
-electrodacus-parser hexdump data/sample_raw_bits.txt
-```
-
-If your ASCII bit files should be packed LSB-first:
-```bash
-electrodacus-parser --lsb-first data/sample_raw_bits.txt
-```
-
-Metadata as JSON (and hexdump unless `--no-hexdump` is set):
-```bash
-electrodacus-parser hexdump --json data/sample_raw_bits.txt
-```
-
-Parse a captured UART log file and print parsed records to stdout:
 ```bash
 electrodacus-parser convert data/sample_raw_bits.txt
 ```
 
-To print the full payload (no truncation):
-```bash
-electrodacus-parser convert --full data/sample_raw_bits.txt
+Each row is one frame. CRC failures are dropped by default; pass
+`--include-errors` to see them, or `--exit-on-errors` to make the CLI
+exit non-zero if any frame was malformed or failed CRC. A summary line
+is always written to stderr:
+
+```
+5 record(s) shown, 0 malformed, 1 CRC failure(s), 0 blank line(s) (of 6 total).
 ```
 
-## Running tests
-```bash
-pytest
-```
-
-## Code formatting (pre-commit)
-
-This project uses pre-commit to enforce code style. Install and run:
+### Hex dump
 
 ```bash
-# Install pre-commit hooks
-pre-commit install
-
-# Run on all files
-pre-commit run --all-files
+electrodacus-parser hexdump data/sample_raw_bits.txt
 ```
 
-Hooks include:
-- **black** - Python code formatting
-- **ruff** - Python linting and import sorting
-- **hadolint** - Dockerfile linting
-- **yamlfmt** - YAML formatting (docker-compose.yml)
-- Standard hooks (trailing whitespace, end-of-file fixer, etc.)
+Reads the file as raw bytes and prints a 16-byte-per-line hex/ASCII dump.
 
-## Docker
-
-All Docker files are in the `docker/` folder.
-
-### Quick run using the provided script:
+### Docker
 
 ```bash
 cd docker
-./run.sh convert
-./run.sh hexdump
+./run.sh                        # convert sample_raw_bits.txt
+./run.sh convert mycapture.txt  # convert your own capture
+./run.sh hexdump mycapture.txt
 ```
 
-### Using docker-compose directly:
+Or directly:
 
 ```bash
 cd docker
 docker-compose run --rm parser convert /data/sample_raw_bits.txt
-docker-compose run --rm parser hexdump /data/sample_raw_bits.txt
 ```
 
-### Manual Docker build and run:
+## Library API
 
-```bash
-cd docker
-docker build -t electrodacus-parser ..
-docker run --rm -v "../data:/data:ro" electrodacus-parser convert /data/sample_raw_bits.txt
+```python
+from electrodacus_parser import decode_line, decode_records
+
+# One frame at a time:
+record = decode_line(line)
+if record and record.crc_ok:
+    print(record.cells_mv, record.batt_ma)
+
+# Or a whole capture, with stats:
+records, stats = decode_records(text)               # CRC-OK only
+records, stats = decode_records(text, require_crc=False)  # include failures
 ```
 
-## Capturing SBMS0 data (UART over USB serial)
+`decode_line` returns `None` when the frame is structurally invalid (wrong
+length, out-of-range characters, or an unrecognized battery-current sign
+byte). The returned `Sbms0Record` exposes `crc_ok`, `it_c`/`et_c` (Celsius
+properties), and the raw `crc_residual` for diagnostics.
 
-SBMS0 can output periodic status lines over UART. When connected via USB (micro USB
-to USB-A), many systems will enumerate it as a CH340/CH341 USB-serial adapter.
+## Development
 
-On Linux, a typical workflow is:
 ```bash
-lsusb
-dmesg | grep tty
+pytest
+ruff check src/ tests/
+mypy --strict src/electrodacus_parser
+pre-commit install && pre-commit run --all-files
+```
+
+## Capturing SBMS0 Data
+
+Connect via USB (CH340/CH341 serial adapter) and capture:
+
+```bash
 stty -F /dev/ttyUSB0 115200 cs8 -cstopb -parenb
-cat -v /dev/ttyUSB0
+cat -v /dev/ttyUSB0 > capture.txt
 ```
 
-To save to a file:
-```bash
-cat -v /dev/ttyUSB0 > yourfile.txt
-```
+Each captured line is exactly 59 ASCII characters in the printable range
+`#`..`}` and looks like:
 
-You should see “gibberish-looking” ASCII lines similar to:
-```text
+```
 #$$#%T#TG|H.H<H&H.H.H'H+*?##-##*#####################$@5%N(
 ```
 
-## Capture file formats supported (initial)
-- **Hex text**: whitespace-separated bytes like `4f 6b 41 79 ...` (optional `0x` prefix).
-- **ASCII bits**: a text file containing `0` and `1` characters; any whitespace
-  is ignored.
-- **Binary / raw bytes**: any other file is treated as already being a byte stream (including
-  “gibberish-looking” ASCII captures).
+## Protocol notes
 
+Each character encodes one base-91 digit (`ord(c) - 35`); multi-digit
+fields are big-endian. Frame layout (0-indexed positions):
 
-## Logic converted from C
-- **[convert2.c](https://groups.google.com/g/electrodacus/c/xks0XWsay90?pli=1)**
+| Pos | Field | Encoding |
+|----:|-------|----------|
+| 0–5 | year, month, day, hour, minute, second | 1 digit each |
+| 6–7 | SOC (%) | 2 digits |
+| 8–23 | Cells 1–8 (mV) | 2 digits each |
+| 24–25 | Internal temp (deci-°C, +450 offset) | 2 digits |
+| 26–27 | External temp (deci-°C, +450 offset) | 2 digits |
+| 28 | Battery current sign (8=charge, 10=discharge) | 1 digit |
+| 29–31 | Battery current magnitude (mA) | 3 digits |
+| 32–34 | PV1 current (mA) | 3 digits |
+| 35–37 | PV2 current (mA) | 3 digits |
+| 38–40 | EXT current (mA) | 3 digits |
+| 41–43 | PV divider (raw) | 3 digits |
+| 44–46 | ADC ch3 (raw) | 3 digits |
+| 47–49 | ADC ch2 (raw) | 3 digits |
+| 50–52 | DMPPT counter | 3 digits |
+| 53 | PV level | 1 digit |
+| 54–55 | CRC | 2 digits |
+| 56–58 | Stat (status flags) | 3 digits |
+
+The CRC field equals `sum(other_57_digits) + 1995` (mod nothing; both
+sides are small integers). On decode, `crc_residual = crc_encoded -
+(sum_of_digits - crc_digits + 1995)`; zero means the frame is intact.
+
+## References
+
+- [convert2.c](https://groups.google.com/g/electrodacus/c/xks0XWsay90?pli=1)
+  — Original C decoder this implementation was ported from.

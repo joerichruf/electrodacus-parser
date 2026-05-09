@@ -1,17 +1,34 @@
 #!/bin/bash
 set -e
 
-# Get the directory where this script is located
+usage() {
+    cat <<EOF
+Usage: $0 [convert|hexdump] [file] [extra-args...]
+
+  Wraps electrodacus-parser via docker-compose. Mounts ../data at /data
+  read-only. Defaults to: convert /data/sample_raw_bits.txt
+
+Examples:
+  $0
+  $0 convert mycapture.txt
+  $0 convert mycapture.txt --include-errors
+  $0 hexdump mycapture.txt
+EOF
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    usage
+    exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Default command
 CMD="${1:-convert}"
 FILE="${2:-sample_raw_bits.txt}"
 
 cd "$SCRIPT_DIR"
 
-# Use MSYS_NO_PATHCONV to prevent Git Bash from converting paths
+# Prevent Git Bash from converting absolute container paths.
 export MSYS_NO_PATHCONV=1
 
-# Run with docker-compose - mount is configured in docker-compose.yml
 docker-compose run --rm parser "$CMD" "/data/$FILE" "${@:3}"
