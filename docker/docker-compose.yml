@@ -1,9 +1,10 @@
+---
 services:
-  parser:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    image: electrodacus-parser
-    volumes:
-      - ../data:/data:ro
-    entrypoint: ["electrodacus-parser"]
+    parser:
+        build:
+            context: ..
+            dockerfile: docker/Dockerfile
+        image: electrodacus-parser
+        volumes:
+            - ../data:/data:ro
+        entrypoint: [electrodacus-parser]

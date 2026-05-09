@@ -74,11 +74,7 @@ def _configure_tty(fd: int, baud: int) -> None:
     )
     oflag &= ~termios.OPOST
     lflag &= ~(
-        termios.ECHO
-        | termios.ECHONL
-        | termios.ICANON
-        | termios.ISIG
-        | termios.IEXTEN
+        termios.ECHO | termios.ECHONL | termios.ICANON | termios.ISIG | termios.IEXTEN
     )
     cflag &= ~(termios.CSIZE | termios.PARENB | termios.CSTOPB | termios.CRTSCTS)
     cflag |= termios.CS8 | termios.CREAD | termios.CLOCAL
@@ -180,7 +176,9 @@ def record_to_jsonable(
 
     if received_at is None:
         received_at = (
-            datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+            datetime.now(timezone.utc)
+            .isoformat(timespec="seconds")
+            .replace("+00:00", "Z")
         )
     return {
         "received_at": received_at,

@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from electrodacus_parser import (
     Publisher,
     decode_line,
@@ -72,9 +71,7 @@ def test_run_stream_publishes_only_crc_ok_by_default():
 
 def test_run_stream_publishes_crc_failures_when_enabled():
     pub = _CapturingPublisher()
-    stats = run_stream(
-        SAMPLE.read_text().splitlines(), [pub], include_errors=True
-    )
+    stats = run_stream(SAMPLE.read_text().splitlines(), [pub], include_errors=True)
 
     assert stats["total"] == 6
     assert stats["published"] == 6

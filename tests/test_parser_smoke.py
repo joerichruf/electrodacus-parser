@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from electrodacus_parser import (
     SBMS0_LINE_LEN,
     Sbms0Record,

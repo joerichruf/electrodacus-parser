@@ -77,9 +77,7 @@ def _build_parser() -> argparse.ArgumentParser:
     ap_stream.add_argument("--mqtt-broker", help="MQTT broker hostname")
     ap_stream.add_argument("--mqtt-port", type=int, default=1883)
     ap_stream.add_argument("--mqtt-topic", default="electrodacus/sbms0")
-    ap_stream.add_argument(
-        "--mqtt-qos", type=int, default=0, choices=[0, 1, 2]
-    )
+    ap_stream.add_argument("--mqtt-qos", type=int, default=0, choices=[0, 1, 2])
     ap_stream.add_argument("--mqtt-username")
     ap_stream.add_argument(
         "--mqtt-password-env",

@@ -24,7 +24,11 @@ cannot be trusted.
 ```bash
 pip install -e .
 pip install -e ".[dev]"   # with development dependencies
+pip install -e ".[mqtt]"  # add MQTT publishing for `stream`
 ```
+
+For local development, see [Development setup](#development-setup) below
+— it walks through creating an isolated virtualenv from scratch.
 
 ## Usage
 
@@ -159,14 +163,75 @@ length, out-of-range characters, or an unrecognized battery-current sign
 byte). The returned `Sbms0Record` exposes `crc_ok`, `it_c`/`et_c` (Celsius
 properties), and the raw `crc_residual` for diagnostics.
 
-## Development
+## Development setup
+
+The project has zero required runtime dependencies, but `dev` and `mqtt`
+extras are needed for tests and MQTT publishing. Set up an isolated
+virtualenv inside the project — never share one with another repo.
 
 ```bash
-pytest
+cd ~/git/electrodacus-parser
+
+# 1. Make sure no other venv is active. If $VIRTUAL_ENV is set to
+#    something outside this repo, run `deactivate` until it's empty.
+deactivate 2>/dev/null || true
+echo "VIRTUAL_ENV=$VIRTUAL_ENV"   # should be empty
+
+# 2. Create a project-local venv.
+python3 -m venv .venv
+
+# 3. Activate it.
+source .venv/bin/activate
+
+# 4. Sanity check — every tool should resolve INSIDE this repo.
+which python      # → ~/git/electrodacus-parser/.venv/bin/python
+which pip         # → ~/git/electrodacus-parser/.venv/bin/pip
+
+# 5. Install the package and dev/mqtt extras.
+python -m pip install --upgrade pip
+pip install -e ".[dev,mqtt]"
+
+# 6. Install the git pre-commit hook.
+pre-commit install
+```
+
+### Running checks
+
+```bash
+pytest                                       # 27 tests
 ruff check src/ tests/
 mypy --strict src/electrodacus_parser
-pre-commit install && pre-commit run --all-files
+pre-commit run --all-files
 ```
+
+### Troubleshooting
+
+**`ModuleNotFoundError: No module named 'pip'` / `'pre_commit'` and the
+traceback points at a path like `/home/you/git/some-other-repo/.venv/`.**
+
+Your shell is auto-activating a different project's virtualenv. The
+prompt's `(.venv)` is misleading — what matters is `which python`. Fix:
+
+```bash
+# Confirm where the wrong env is coming from.
+which python
+echo "$VIRTUAL_ENV"
+
+# Deactivate it (may need to run more than once if nested).
+deactivate
+
+# Inspect your shell rc files for an auto-activate line and remove it.
+grep -E 'activate|VIRTUAL_ENV' ~/.bashrc ~/.zshrc ~/.profile 2>/dev/null
+
+# Then redo the venv steps above for THIS repo.
+```
+
+**`python3 -m venv` says `ensurepip is not available`.**
+On Debian/Ubuntu: `sudo apt install python3-venv`.
+
+**Tests fail with `ModuleNotFoundError: No module named 'electrodacus_parser'`.**
+You skipped the editable install. Run `pip install -e ".[dev]"` again
+inside the activated venv.
 
 ## Capturing SBMS0 Data
 
