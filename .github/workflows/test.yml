@@ -33,4 +33,6 @@ jobs:
         run: ruff check src/ tests/
 
       - name: Run mypy
-        run: mypy --install-types --non-interactive --strict src/electrodacus_parser
+        run: |
+          pip uninstall -y types-paho-mqtt || true
+          mypy --strict src/electrodacus_parser
