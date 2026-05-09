@@ -33,4 +33,4 @@ jobs:
         run: ruff check src/ tests/
 
       - name: Run mypy
-        run: mypy --install-types --strict src/electrodacus_parser
+        run: mypy --install-types -non-interactive --strict src/electrodacus_parser
