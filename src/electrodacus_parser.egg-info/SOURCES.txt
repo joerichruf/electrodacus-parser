@@ -4,6 +4,7 @@ pyproject.toml
 src/electrodacus_parser/__init__.py
 src/electrodacus_parser/cli.py
 src/electrodacus_parser/parser.py
+src/electrodacus_parser/stream.py
 src/electrodacus_parser.egg-info/PKG-INFO
 src/electrodacus_parser.egg-info/SOURCES.txt
 src/electrodacus_parser.egg-info/dependency_links.txt
@@ -11,3 +12,4 @@ src/electrodacus_parser.egg-info/entry_points.txt
 src/electrodacus_parser.egg-info/requires.txt
 src/electrodacus_parser.egg-info/top_level.txt
 tests/test_parser_smoke.py
+tests/test_stream.py

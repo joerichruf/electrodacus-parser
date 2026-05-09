@@ -19,6 +19,7 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0", "pre-commit>=3.5.0", "black>=24.0.0", "ruff>=0.3.0"]
+mqtt = ["paho-mqtt>=2.0"]
 
 [project.scripts]
 electrodacus-parser = "electrodacus_parser.cli:main"
@@ -39,6 +40,9 @@ line-length = 88
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["electrodacus_parser"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
